@@ -14,11 +14,7 @@ Cards = new Meteor.Collection("cards");
 
 Meteor.methods({
   addCard: function(card) {
-    return Cards.insert({
-      headline: card.headline, 
-      components: card.components,
-      tags: card.tags
-    });
+    return Cards.insert(card);
   }
 });
 
@@ -131,11 +127,13 @@ var Card = React.createClass({
     if (card.compone)
 
     var props = this.props;
+    var label = card.time || card.address ? <span className='card-label'>Event</span> : null;
     var components = card.components ? card.components.map(this.renderCardComponent) : null;
     var headline = card.headline ? <span className="headline">{card.headline}</span> : null;
     var tags = card.tags ? <span className="tags">{card.tags.map(function(tag) { return '#' + tag; }).join(' ')}</span> : null;
 
     return <div {...props} className="card">
+      { label }
       { headline }
       { components }
       { tags }
@@ -157,7 +155,8 @@ var NewCard = React.createClass({
       tags: [],
       address: '',
       startTime: null,
-      endTime: null
+      endTime: null,
+      showEventOptions: false
     };
   },
   cancel: function() {
@@ -170,8 +169,8 @@ var NewCard = React.createClass({
 
     var id = Meteor.call("addCard", this.state);
     this.setState(this.getInitialState());
-    console.log("generate card");
-    console.log(this.state);
+    // console.log("generate card");
+    // console.log(this.state);
 
     // insert callback function to rerender cardlist.
   },
@@ -188,17 +187,23 @@ var NewCard = React.createClass({
       return <textarea onChange={this.updateCardComponent.bind(this, index, 'text')} value={card.text} />;
     }
   },
+  toggleShow: function() {
+    this.setState({'showEventOptions': !this.state.showEventOptions});
+  },
   render: function() {
     var address = this.state.address,
-        headline = this.state.headline;
+        headline = this.state.headline,
+        className = 'event-options' + (this.state.showEventOptions ? '' : ' hide');
 
     return  <div className="card new-card">
               <form onSubmit={this.generateCard} >
                 <input className="headline" type="text" placeholder='Headline' value={headline} onChange={setField.bind(this, 'headline')} />
                 { this.state.components.map(this.renderCardComponent) }
-
-                <input type="text" value={address} placeholder="Add a place?" onChange={setField.bind(this, 'address')} />
-                <EventCardForm end={false}/>
+                <div className="event-options-button" onClick={this.toggleShow}>+ Event Options</div>
+                <div className={className}>
+                  <input type="text" value={address} placeholder="Add a place?" onChange={setField.bind(this, 'address')} />
+                  <EventCardForm end={false} update={setField.bind(this, 'startTime')}/>
+                </div>
                 <TagGenerator update={setField.bind(this, 'tags')} />
                 <div>
                   <div onClick={this.cancel}>Cancel</div>
@@ -221,7 +226,7 @@ var AddNewComponent = React.createClass({
   render: function() {
     return  <div className="add-new">
               <span className="add-new-button" onClick={this.toggleExpand}></span>
-            </div>
+            </div>;
   }
 });
 
@@ -262,22 +267,28 @@ var BodyTextCardForm = React.createClass({
 var EventCardForm = React.createClass({
   getInitialState: function() {
     return {
-      time: new Date().getTime(),
-      end: this.props.end
+      time: null,
     };
   },
-  setDate: function(value) {
-
+  setDate: function(value) {var time = getTime(getTimeStr(this.state.time)),
+        date = getDate(value),
+        timestamp = new Date(date.year, date.month, date.day, time.hour, time.minute).getTime();
+    this.setState({time: timestamp});
+    this.props.update(timestamp)
   },
   setTime: function(value) {
-
+    var time = getTime(value),
+        date = getDate(getDateStr(this.state.time)),
+        timestamp = new Date(date.year, date.month, date.day, time.hour, time.minute).getTime();
+    this.setState({time: timestamp});
+    this.props.update(timestamp)
   },
   render: function() {
     var title = this.state.title,
         description = this.state.description;
-    return  <div>
-              <DateSelector initVal={this.state.startDate} update={this.setDate} />
-              <TimeSelector initVal={this.state.startTime} update={this.setTime} />
+    return  <div className='event-time'>
+                <DateSelector initVal={this.state.startDate} update={this.setDate} />
+                <TimeSelector initVal={this.state.startTime} update={this.setTime} />
             </div>;
   }
 });
@@ -320,7 +331,7 @@ var DateSelector = React.createClass({
     var value = event.target.value;
     if (value.match(/^((1[0-2])|\d)\/[0-3]?\d\/\d{4}$/)) {
       this.setState({date: value});
-      this.props.update(event);
+      this.props.update(value);
     } else {
       this.setState({text: this.state.date});
     }
@@ -351,7 +362,7 @@ var TagGenerator = React.createClass({
           nextTags = this.state.tags.concat(newTag),
           nextText = nextTags.map(function(str) { return '#' + str; }).join(' ') + ' ';
       this.setState({tags: nextTags, text: nextText});
-    this.props.update(nextTags);
+      this.props.update(nextTags);
     }
   },
   handleChange: function(event) {
@@ -377,17 +388,37 @@ function setField(prop, value) {
   }
 }
 
-function getDate(timestamp) {
-  var month = timestamp.getMonth() + 1,
-      day = timestamp.getDate(),
-      year = timestamp.getFullYear();
+function getDate(dateStr) {
+  var dateArr = dateStr.split('/');
+  return {
+    month: parseInt(dateArr[0]),
+    day: parseInt(dateArr[1]),
+    year: parseInt(dateArr[2])
+  }
+}
+
+function getTime(timeStr) {
+  var timeArr1 = timeStr.split(' '),
+      timeArr2 = timeArr1[0].split(':');
+  return {
+    hour: parseInt(timeArr2[0]) + (timeArr1[1] === 'PM' ? 12 : 0),
+    minute: parseInt(timeArr2[1]),
+  }
+}
+
+function getDateStr(timestamp) {
+  var dateObj = new Date(timestamp),
+      month = dateObj.getMonth() + 1,
+      day = dateObj.getDate(),
+      year = dateObj.getFullYear();
   return [month, day, year].join('/');
 }
 
-function getTime(timestamp) {
-  var hours = timestamp.getHours(),
-      minutes = timestamp.getMinutes() < 10 ? '0' + timestamp.getMinutes() : timestamp.getMinutes(),
-      isPm = timestamp.getHours() > 12;
+function getTimeStr(timestamp) {
+  var dateObj = new Date(timestamp),
+      hours = dateObj.getHours(),
+      minutes = dateObj.getMinutes() < 10 ? '0' + dateObj.getMinutes() : dateObj.getMinutes(),
+      isPm = dateObj.getHours() > 12;
   return (isPm ? hours - 12 : hours) + ':' + minutes + ' ' + (isPm ? 'PM' : 'AM');
 }
 

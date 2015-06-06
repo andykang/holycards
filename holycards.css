@@ -80,3 +80,7 @@ body {
 .user-select {
   cursor: pointer;
 }
+
+.hide {
+  display: none;
+}
