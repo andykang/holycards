@@ -7,8 +7,8 @@
 
 var cx = React.addons.classSet;
 
-// Set up a collection to contain player information. On the server,
-// it is backed by a MongoDB collection named "players".
+// Set up a collection to contain bulletin cards. On the server,
+// it is backed by a MongoDB collection named "cards".
 Cards = new Meteor.Collection("cards");
 
 Meteor.methods({
@@ -18,11 +18,47 @@ Meteor.methods({
 });
 
 
+var UserSelect = React.createClass({
+  getInitialState: function() {
+    var userType = Session.get("user_type");
+    if (!userType) {
+      userType = "Admin";
+      Session.set("user_type", userType);
+
+    }
+    return { userType: Session.get("user_type") };
+  },
+  toggleUserType: function() {
+    var newType = this.state.userType === "Admin" ? "User" : "Admin";
+    this.setState({userType: newType});
+    Session.set("user_type", newType);
+  },
+  render: function() {
+    var view =  [
+      <div class="user-select" onClick={this.toggleUserType}>
+        Switch to {this.state.userType} View
+      </div>
+    ];
+
+    if (this.state.userType === "Admin") {
+      view.push(
+        <div id="new-card">
+          <NewCard/>
+        </div>
+      );
+    };
+
+    return  <div class="control">
+              {view}
+            </div>;
+  }
+});
+
 var CardList = ReactMeteor.createClass({
   // Specifying a templateName property allows the component to be
   // interpolated into a Blaze template just like any other template:
-  // {{> Leaderboard x=1 y=2}}. This corresponds to the JSX expression
-  // <Leaderboard x={1} y={2} />.
+  // {{> CardList x=1 y=2}}. This corresponds to the JSX expression
+  // <CardList x={1} y={2} />.
   templateName: "CardList",
 
   startMeteorSubscriptions: function() {
@@ -59,34 +95,13 @@ var CardList = ReactMeteor.createClass({
 
   render: function() {
     var children = [
-      <div className="leaderboard">
+      <div className="cardlist">
         { this.state.cards.map(this.renderCard) }
       </div>
     ];
 
-    // if (this.state.selectedName) {
-    //   children.push(
-    //     <div className="details">
-    //       <div className="name">{this.state.selectedName}</div>
-    //       <input
-    //         type="button"
-    //         className="inc"
-    //         value="Give 5 points"
-    //         onClick={this.addFivePoints}
-    //       />
-    //     </div>
-    //   );
-
-    // } else {
-    //   children.push(
-    //     <div className="none">Click a card to select</div>
-    //   );
-    // }
-
     return <div className="inner">
-            <div id="new-card">
-              <NewCard/>
-            </div>
+            <UserSelect />
             { children }
           </div>;
   }
@@ -98,7 +113,7 @@ var Card = React.createClass({
     return name !== nextProps.name || score !== nextProps.score || rest.className !== nextProps.className;
   },
   render: function() {
-    var { name, score, ...rest } = this.props;
+    var { name, ...rest } = this.props;
     return <div {...rest} className={cx("card", rest.className)}>
       <span className="name">{name}</span>
     </div>;
@@ -108,6 +123,12 @@ var Card = React.createClass({
 // START ANDY'S CODE
 
 var NewCard = React.createClass({
+  render: function() {
+    return <div><BodyTextCardForm/><TimeSelector/></div>;
+  }
+});
+
+var BodyTextCardForm = React.createClass({
   getInitialState: function() {
     return {text: 'Hello!'};
   },
@@ -117,7 +138,6 @@ var NewCard = React.createClass({
     if (key === 13) {
       var id = Meteor.call("addCard", this.state.text);
       this.setState({text: ""});
-
       event.preventDefault();
     }
   },
@@ -135,6 +155,39 @@ var NewCard = React.createClass({
 var ScheduleCardForm = React.createClass({
   render: function() {
     return;
+  }
+});
+
+var TimeSelector = React.createClass({
+  getCurrentTimeStr: function() {
+    var now = new Date(),
+        hours = now.getHours(),
+        minutes = now.getMinutes(),
+        isPm = now.getHours() > 12;
+    return (isPm ? hours - 12 : hours) + ':' + minutes + ' ' + (isPm ? 'PM' : 'AM');
+  },
+  getInitialState: function() {
+    return {
+      time: this.getCurrentTimeStr(),
+      text: this.getCurrentTimeStr()
+    };
+  },
+  validateTime: function(event) {
+    // validate time
+    var value = event.target.value;
+    if (value.match(/^[01]?\d:[0-5]\d [AP]M$/)) {
+      this.setState({time: value});
+    } else {
+      this.setState({text: this.state.time});
+    }
+  },
+  handleChange: function(event) {
+    this.setState({text: event.target.value});
+  },
+  render: function() {
+    var time = this.state.time;
+    var text = this.state.text;
+    return <input type="text" value={text} onChange={this.handleChange} onBlur={this.validateTime} />;
   }
 });
 
