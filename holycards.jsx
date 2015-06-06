@@ -5,49 +5,49 @@
  * @jsx React.DOM
  */
 
-var cx = React.addons.classSet;
+var cx = React.addons.classSet,
+    tantumErgo = 'Tantum ergo Sacramentum veneremur cernui et antiquum documentum novo cedat ritui præstet fides supplementum sensuum defectui.';
 
 // Set up a collection to contain bulletin cards. On the server,
 // it is backed by a MongoDB collection named "cards".
 Cards = new Meteor.Collection("cards");
 
 Meteor.methods({
-  addCard: function(text) {
-    return Cards.insert({text: text});
+  addCard: function(card) {
+    return Cards.insert({headline: card.headline, components: card.components});
   }
 });
 
 
-var UserSelect = React.createClass({
-  getInitialState: function() {
+var StreamCreator = ReactMeteor.createClass({
+  templateName: "StreamCreator",
+
+  getMeteorState: function() {
     var userType = Session.get("user_type");
     if (!userType) {
       userType = "Admin";
       Session.set("user_type", userType);
-
     }
     return { userType: Session.get("user_type") };
   },
+
   toggleUserType: function() {
     var newType = this.state.userType === "Admin" ? "User" : "Admin";
     this.setState({userType: newType});
     Session.set("user_type", newType);
   },
+
   render: function() {
-    var view =  [
-      <div class="user-select" onClick={this.toggleUserType}>
-        Switch to {this.state.userType} View
-      </div>
-    ];
+    var newCard = this.state.userType === "Admin" ? <NewCard /> : null;
 
-    if (this.state.userType === "Admin") {
-      view.push(
-        <NewCard/>
-      );
-    };
-
-    return  <div class="control">
-              {view}
+    return  <div>
+              <div class="control">
+                <div class="user-select" onClick={this.toggleUserType}>
+                  Switch to {this.state.userType === 'Admin' ? 'User' : 'Admin'} View
+                </div>
+              </div>
+              <CardList />
+              {newCard}
             </div>;
   }
 });
@@ -83,9 +83,14 @@ var CardList = ReactMeteor.createClass({
   renderCard: function(model) {
     var _id = this.state.selectedCard && this.state.selectedCard._id;
 
+    // console.log(model._id);
+
+
     return <Card
       key={model._id}
-      name={model.text}
+      cardId={model._id}
+      headline={model.headline}
+      text={model.text}
       className={model._id === _id ? "selected" : ""}
       onClick={this.selectCard.bind(this, model._id)}
     />;
@@ -98,92 +103,183 @@ var CardList = ReactMeteor.createClass({
       </div>
     ];
 
-    return <div className="inner">
-            <UserSelect />
-            { children }
-          </div>;
+    return  <div className="inner">
+              { children }
+            </div>;
   }
 });
 
 var Card = React.createClass({
   shouldComponentUpdate: function(nextProps, nextState){
-    var { name, score, ...rest } = this.props;
-    return name !== nextProps.name || score !== nextProps.score || rest.className !== nextProps.className;
+    var { text, score, ...rest } = this.props;
+    return text !== nextProps.text || score !== nextProps.score || rest.className !== nextProps.className;
+  },
+  renderCardComponent: function(component) {
+    if (component.type === 'text') {
+      return <div className='body-text'>{component.text}</div>;
+    }
   },
   render: function() {
-    var { name, ...rest } = this.props;
-    return <div {...rest} className={cx("card", rest.className)}>
-      <span className="name">{name}</span>
+    var id = this.props.cardId;
+    var card = Cards.findOne(id);
+    // console.log(this.props);
+    console.log(card);
+    if (card.compone)
+
+    var props = this.props;
+    var components = card.components ? card.components.map(this.renderCardComponent) : null;
+
+    return <div {...props} className="card">
+      <span className="headline">{card.headline}</span>
+      { components }
     </div>;
   }
 });
 
-// START ANDY'S CODE
-
 var NewCard = React.createClass({
+  getInitialState: function () {
+    var now = new Date().getTime();
+    return {
+      headline: '',
+      components: [
+        {
+          type: 'text',
+          text: ''
+        }
+      ],
+      tags: [],
+      address: '',
+      startTime: null,
+      endTime: null
+    };
+  },
+  cancel: function() {
+    this.setState(this.getInitialState());
+    // console.log(this.getInitialState());
+    // console.log("cancel!");
+  },
+  generateCard: function(event) {
+    event.preventDefault();
+
+    var id = Meteor.call("addCard", this.state);
+    this.setState(this.getInitialState());
+    console.log("generate card");
+    console.log(this.state);
+
+    // insert callback function to rerender cardlist.
+  },
+  updateCardComponent: function(index, type, event) {
+    var value = event.target.value;
+
+    var newComponents = this.state.components.slice(0);
+    newComponents[index].text = value;
+    this.setState({components: newComponents});
+    // console.log('updateCardComponent', index);
+  },
+  renderCardComponent: function(card, index) {
+    if (card.type === 'text') {
+      return <textarea onChange={this.updateCardComponent.bind(this, index, 'text')} value={card.text} />;
+    }
+  },
   render: function() {
-    return <div><BodyTextCardForm/><ScheduleCardForm/></div>;
+    var address = this.state.address,
+        headline = this.state.headline;
+
+    return  <div className="card new-card">
+              <form onSubmit={this.generateCard} >
+                <input className="headline" type="text" placeholder='Headline' value={headline} onChange={setField.bind(this, 'headline')} />
+                { this.state.components.map(this.renderCardComponent) }
+
+                <input type="text" value={address} placeholder="Add a place?" onChange={setField.bind(this, 'address')} />
+                <EventCardForm end={false}/>
+                <TagGenerator update={setField.bind(this, 'tags')} />
+                <div>
+                  <div onClick={this.cancel}>Cancel</div>
+                  <button>Done</button>
+                </div>
+              </form>
+            </div>;
   }
 });
+
+var AddNewComponent = React.createClass({
+  getInitialState: function () {
+    return {
+      expand: false
+    };
+  },
+  toggleExpand: function() {
+    this.setState(!this.state.expand);
+  }
+  render: function() {
+    return  <div className="add-new">
+              <span className="add-new-button" onClick={this.toggleExpand}></span>
+            </div>
+  }
+});
+
+// var HeadlineCardForm = React.createClass({
+//   getInitialState: function () {
+//       return {
+//           headline: ''
+//       };
+//   },
+//   render: function() {
+//     var headline = this.state.headline;
+//     return <input className="headline" type="text" placeholder='Headline' value={headline} onChange={setField.bind(this, 'headline')} />
+//   }
+// });
 
 var BodyTextCardForm = React.createClass({
   getInitialState: function() {
-    return {text: 'Hello!'};
+    return {
+      text: this.props.value
+    };
   },
 
-  handleKeyDown: function(event) {
-    var key = event.which || event.keyCode;
-    if (key === 13) {
-      var id = Meteor.call("addCard", this.state.text);
-      this.setState({text: ""});
-      event.preventDefault();
-    }
-  },
-
-  handleChange: function(event) {
-      this.setState({text: event.target.value});
-  },
+  // handleKeyDown: function(event) {
+  //   var key = event.which || event.keyCode;
+  //   if (key === 13) {
+  //     var id = Meteor.call("addCard", this.state.text);
+  //     this.setState({text: ""});
+  //     event.preventDefault();
+  //   }
+  // },
 
   render: function() {
     var text = this.state.text;
-    return  <textarea class="new-card" onKeyDown={this.handleKeyDown} onChange={this.handleChange} value={text} />
+    return  <textarea class="new-card" onChange={setField.bind(this, 'text')} value={text} />
   }
 });
 
-var ScheduleCardForm = React.createClass({
+var EventCardForm = React.createClass({
   getInitialState: function() {
-    var now = new Date();
     return {
-      startTime: now,
-      endTime: now,
-      title: 'New Event',
-      description: 'Tantum ergo Sacramentum veneremur cernui et antiquum documentum novo cedat ritui præstet fides supplementum sensuum defectui.'
+      time: new Date().getTime(),
+      end: this.props.end
     };
   },
+  setDate: function(value) {
+
+  },
+  setTime: function(value) {
+
+  },
   render: function() {
+    var title = this.state.title,
+        description = this.state.description;
     return  <div>
-              <input type="text"/>
-              <DateSelector/>
-              <TimeSelector/>
-              <DateSelector/>
-              <TimeSelector/>
-              <textarea/>
+              <DateSelector initVal={this.state.startDate} update={this.setDate} />
+              <TimeSelector initVal={this.state.startTime} update={this.setTime} />
             </div>;
   }
 });
 
 var TimeSelector = React.createClass({
-  getCurrentTimeStr: function() {
-    var now = new Date(),
-        hours = now.getHours(),
-        minutes = now.getMinutes() < 10 ? '0' + now.getMinutes(): now.getMinutes(),
-        isPm = now.getHours() > 12;
-    return (isPm ? hours - 12 : hours) + ':' + minutes + ' ' + (isPm ? 'PM' : 'AM');
-  },
   getInitialState: function() {
     return {
-      time: this.getCurrentTimeStr(),
-      text: this.getCurrentTimeStr()
+      time: this.props.initVal,
+      text: this.props.initVal
     };
   },
   validateTime: function(event) {
@@ -191,6 +287,7 @@ var TimeSelector = React.createClass({
     var value = event.target.value;
     if (value.match(/^[01]?\d:[0-5]\d [AP]M$/)) {
       this.setState({time: value});
+      this.props.update(value);
     } else {
       this.setState({text: this.state.time});
     }
@@ -200,22 +297,15 @@ var TimeSelector = React.createClass({
   },
   render: function() {
     var text = this.state.text;
-    return <input type="text" value={text} onChange={this.handleChange} onBlur={this.validateTime} />;
+    return <input className="time" type="text" placeholder="Add a time?" value={text} onChange={this.handleChange} onBlur={this.validateTime} />;
   }
 });
 
 var DateSelector = React.createClass({
-  getCurrentDateStr: function() {
-    var now = new Date(),
-        month = now.getMonth() + 1,
-        day = now.getDate(),
-        year = now.getFullYear();
-    return [month, day, year].join('/');
-  },
   getInitialState: function() {
     return {
-      date: this.getCurrentDateStr(),
-      text: this.getCurrentDateStr()
+      date: this.props.initVal,
+      text: this.props.initVal
     };
   },
   validateDate: function(event) {
@@ -223,6 +313,7 @@ var DateSelector = React.createClass({
     var value = event.target.value;
     if (value.match(/^((1[0-2])|\d)\/[0-3]?\d\/\d{4}$/)) {
       this.setState({date: value});
+      this.props.update(event);
     } else {
       this.setState({text: this.state.date});
     }
@@ -232,11 +323,68 @@ var DateSelector = React.createClass({
   },
   render: function() {
     var text = this.state.text;
-    return <input type="text" value={text} onChange={this.handleChange} onBlur={this.validateDate} />;
+    return <input className="date" type="text" placeholder="Add a date?" value={text} onChange={this.handleChange} onBlur={this.validateDate} />;
   }
 });
 
-// END ANDY'S CODE
+var TagGenerator = React.createClass({
+  getInitialState: function () {
+      return {
+          tags: [],
+          text: ''
+      };
+  },
+  handleKeyDown: function(event) {
+    var key = event.which || event.keyCode;
+    if (key === 188) {
+      event.preventDefault();
+      // console.log('comma!');
+
+      var newTag = this.state.text.split(' ').slice(-1),
+          nextTags = this.state.tags.concat([newTag]),
+          nextText = nextTags.map(function(str) { return '#' + str; }).join(' ') + ' ';
+      this.setState({tags: nextTags, text: nextText});
+    }
+  },
+  handleChange: function(event) {
+    var value = event.target.value;
+    this.setState({text: value});
+    this.props.update(prop, value);
+  },
+  render: function() {
+    var text = this.state.text;
+    return <input className="tags" type="text" placeholder="#tags" value={text} onKeyDown={this.handleKeyDown} onChange={this.handleChange} />
+  }
+});
+
+// === Re-used Functions === //
+function setField(prop, value) {
+  var obj = {},
+      trueValue = value.target ? value.target.value : value;
+
+  obj[prop] = trueValue;
+  // console.log(obj);
+  this.setState(obj);
+  if (this.props.update) {
+    this.props.update(trueValue);
+  }
+}
+
+function getDate(timestamp) {
+  var month = timestamp.getMonth() + 1,
+      day = timestamp.getDate(),
+      year = timestamp.getFullYear();
+  return [month, day, year].join('/');
+}
+
+function getTime(timestamp) {
+  var hours = timestamp.getHours(),
+      minutes = timestamp.getMinutes() < 10 ? '0' + timestamp.getMinutes() : timestamp.getMinutes(),
+      isPm = timestamp.getHours() > 12;
+  return (isPm ? hours - 12 : hours) + ':' + minutes + ' ' + (isPm ? 'PM' : 'AM');
+}
+
+// === Meteor === //
 
 if (Meteor.isClient) {
   Accounts.ui.config({
@@ -262,5 +410,3 @@ if (Meteor.isServer) {
     return Cards.find();
   });
 }
-
-

@@ -17,12 +17,14 @@ body {
 
 .card {
   cursor: pointer;
-  padding: 5px;
+  padding: 10px;
+  margin: 10px;
+  border: 1px #ccc solid;
+  box-shadow: none;
 }
 
-.card .name {
-  display: inline-block;
-  width: 300px;
+.card .headline {
+  display: block;
   font-size: 1.75em;
 }
 
@@ -39,8 +41,18 @@ body {
   background-color: yellow;
 }
 
-.card.selected .score {
-  color: black;
+.new-card {
+  margin-top: 30px;
+  cursor: pointer;
+}
+
+.new-card input {
+  border: none;
+  display: block;
+}
+
+.new-card input:focus {
+  outline: #eee auto 5px;
 }
 
 .details, .none {
