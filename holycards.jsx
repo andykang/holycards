@@ -348,15 +348,15 @@ var TagGenerator = React.createClass({
       // console.log('comma!');
 
       var newTag = this.state.text.split(' ').slice(-1),
-          nextTags = this.state.tags.concat([newTag]),
+          nextTags = this.state.tags.concat(newTag),
           nextText = nextTags.map(function(str) { return '#' + str; }).join(' ') + ' ';
       this.setState({tags: nextTags, text: nextText});
+    this.props.update(nextTags);
     }
   },
   handleChange: function(event) {
     var value = event.target.value;
     this.setState({text: value});
-    this.props.update(value);
   },
   render: function() {
     var text = this.state.text;
