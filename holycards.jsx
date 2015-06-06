@@ -14,7 +14,11 @@ Cards = new Meteor.Collection("cards");
 
 Meteor.methods({
   addCard: function(card) {
-    return Cards.insert({headline: card.headline, components: card.components});
+    return Cards.insert({
+      headline: card.headline, 
+      components: card.components,
+      tags: card.tags
+    });
   }
 });
 
@@ -123,15 +127,18 @@ var Card = React.createClass({
     var id = this.props.cardId;
     var card = Cards.findOne(id);
     // console.log(this.props);
-    console.log(card);
+    // console.log(card);
     if (card.compone)
 
     var props = this.props;
     var components = card.components ? card.components.map(this.renderCardComponent) : null;
+    var headline = card.headline ? <span className="headline">{card.headline}</span> : null;
+    var tags = card.tags ? <span className="tags">{card.tags.map(function(tag) { return '#' + tag; }).join(' ')}</span> : null;
 
     return <div {...props} className="card">
-      <span className="headline">{card.headline}</span>
+      { headline }
       { components }
+      { tags }
     </div>;
   }
 });
@@ -210,7 +217,7 @@ var AddNewComponent = React.createClass({
   },
   toggleExpand: function() {
     this.setState(!this.state.expand);
-  }
+  },
   render: function() {
     return  <div className="add-new">
               <span className="add-new-button" onClick={this.toggleExpand}></span>
@@ -349,7 +356,7 @@ var TagGenerator = React.createClass({
   handleChange: function(event) {
     var value = event.target.value;
     this.setState({text: value});
-    this.props.update(prop, value);
+    this.props.update(value);
   },
   render: function() {
     var text = this.state.text;
