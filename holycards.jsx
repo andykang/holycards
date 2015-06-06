@@ -42,9 +42,7 @@ var UserSelect = React.createClass({
 
     if (this.state.userType === "Admin") {
       view.push(
-        <div id="new-card">
-          <NewCard/>
-        </div>
+        <NewCard/>
       );
     };
 
@@ -124,7 +122,7 @@ var Card = React.createClass({
 
 var NewCard = React.createClass({
   render: function() {
-    return <div><BodyTextCardForm/><TimeSelector/></div>;
+    return <div><BodyTextCardForm/><ScheduleCardForm/></div>;
   }
 });
 
@@ -153,8 +151,24 @@ var BodyTextCardForm = React.createClass({
 });
 
 var ScheduleCardForm = React.createClass({
+  getInitialState: function() {
+    var now = new Date();
+    return {
+      startTime: now,
+      endTime: now,
+      title: 'New Event',
+      description: 'Tantum ergo Sacramentum veneremur cernui et antiquum documentum novo cedat ritui præstet fides supplementum sensuum defectui.'
+    };
+  },
   render: function() {
-    return;
+    return  <div>
+              <input type="text"/>
+              <DateSelector/>
+              <TimeSelector/>
+              <DateSelector/>
+              <TimeSelector/>
+              <textarea/>
+            </div>;
   }
 });
 
@@ -162,7 +176,7 @@ var TimeSelector = React.createClass({
   getCurrentTimeStr: function() {
     var now = new Date(),
         hours = now.getHours(),
-        minutes = now.getMinutes(),
+        minutes = now.getMinutes() < 10 ? '0' + now.getMinutes(): now.getMinutes(),
         isPm = now.getHours() > 12;
     return (isPm ? hours - 12 : hours) + ':' + minutes + ' ' + (isPm ? 'PM' : 'AM');
   },
@@ -185,9 +199,40 @@ var TimeSelector = React.createClass({
     this.setState({text: event.target.value});
   },
   render: function() {
-    var time = this.state.time;
     var text = this.state.text;
     return <input type="text" value={text} onChange={this.handleChange} onBlur={this.validateTime} />;
+  }
+});
+
+var DateSelector = React.createClass({
+  getCurrentDateStr: function() {
+    var now = new Date(),
+        month = now.getMonth() + 1,
+        day = now.getDate(),
+        year = now.getFullYear();
+    return [month, day, year].join('/');
+  },
+  getInitialState: function() {
+    return {
+      date: this.getCurrentDateStr(),
+      text: this.getCurrentDateStr()
+    };
+  },
+  validateDate: function(event) {
+    // validate time
+    var value = event.target.value;
+    if (value.match(/^((1[0-2])|\d)\/[0-3]?\d\/\d{4}$/)) {
+      this.setState({date: value});
+    } else {
+      this.setState({text: this.state.date});
+    }
+  },
+  handleChange: function(event) {
+    this.setState({text: event.target.value});
+  },
+  render: function() {
+    var text = this.state.text;
+    return <input type="text" value={text} onChange={this.handleChange} onBlur={this.validateDate} />;
   }
 });
 
