@@ -15,6 +15,9 @@ Cards = new Meteor.Collection("cards");
 Meteor.methods({
   addCard: function(card) {
     return Cards.insert(card);
+  },
+  removeCard: function(id) {
+    Cards.remove({_id: id});
   }
 });
 
@@ -42,6 +45,7 @@ var StreamCreator = ReactMeteor.createClass({
 
     return  <div>
               <div className="control">
+                <div className="menu-button"><img src="/ic_white_menu_48px.svg" alt="Kiwi standing on oval" /></div>
                 <div className="user-select" onClick={this.toggleUserType}>
                   Switch to {this.state.userType === 'Admin' ? 'User' : 'Admin'} View
                 </div>
@@ -78,6 +82,20 @@ var CardList = ReactMeteor.createClass({
 
   selectCard: function(id) {
     Session.set("selected_card", id);
+    this.setState({selectedCard: id});
+  },
+
+  handleKeyDown: function(id, e) {
+    var key = e.keyCode || e.which;
+    if (key === 8) {
+      e.preventDefault();
+      Session.set("selected_card", '');
+      this.setState({selectedCard: ''});
+      Meteor.call("removeCard", id);
+    } else if (key === 27) {
+      Session.set("selected_card", '');
+      this.setState({selectedCard: ''});
+    }
   },
 
   renderCard: function(model) {
@@ -92,6 +110,7 @@ var CardList = ReactMeteor.createClass({
       text={model.text}
       className={model._id === _id ? "selected" : ""}
       onClick={this.selectCard.bind(this, model._id)}
+      onKeyDown={this.handleKeyDown.bind(this, model._id)}
     />;
   },
 
@@ -115,11 +134,16 @@ var Card = React.createClass({
   },
   renderCardComponent: function(component) {
     if (component.type === 'text') {
-      var text = component.text.replace(/\n/g, '<br>')
-          textNodes = text,
-          createMarkup = function() { return {__html: text }; };
+      var text = component.text.split('\n'),
+          textNodes = [];
+      for (var i = 0; i < text.length; i++) {
+        textNodes.push(text[i]);
+        if (i < text.length - 1) {
+          textNodes.push(<br />);
+        }
+      }
 
-      return <div className='body-text' dangerouslySetInnerHTML={createMarkup()} />;
+      return <div className='body-text'>{textNodes}</div>;
     }
   },
   render: function() {
@@ -129,17 +153,22 @@ var Card = React.createClass({
     // console.log(card);
 
     var props = this.props;
-    console.log(props);
+    // console.log(props);
     var label = card.time || card.address ? <span className='card-label'>Event</span> : null;
     var components = card.components ? card.components.map(this.renderCardComponent) : null;
     var headline = card.headline ? <span className="headline">{card.headline}</span> : null;
     var tags = card.tags ? <span className="tags">{card.tags.map(function(tag) { return '#' + tag; }).join(' ')}</span> : null;
+    var address = card.address ? <div className="address">{card.address}</div> : null;
+    var time = card.startTime ? <div className="time">{getDateStr(card.startTime) + ' ' + getTimeStr(card.startTime)}</div> : null;
+    var className = this.props.className + ' card'
 
-    return <div {...props} className="card">
+    return <div {...props} className={className}>
       { label }
       { headline }
       { components }
       { tags }
+      { address }
+      { time } 
     </div>;
   }
 });
