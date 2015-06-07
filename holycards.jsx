@@ -41,8 +41,8 @@ var StreamCreator = ReactMeteor.createClass({
     var newCard = this.state.userType === "Admin" ? <NewCard /> : null;
 
     return  <div>
-              <div class="control">
-                <div class="user-select" onClick={this.toggleUserType}>
+              <div className="control">
+                <div className="user-select" onClick={this.toggleUserType}>
                   Switch to {this.state.userType === 'Admin' ? 'User' : 'Admin'} View
                 </div>
               </div>
@@ -85,7 +85,6 @@ var CardList = ReactMeteor.createClass({
 
     // console.log(model._id);
 
-
     return <Card
       key={model._id}
       cardId={model._id}
@@ -116,7 +115,11 @@ var Card = React.createClass({
   },
   renderCardComponent: function(component) {
     if (component.type === 'text') {
-      return <div className='body-text'>{component.text}</div>;
+      var text = component.text.replace(/\n/g, '<br>')
+          textNodes = text,
+          createMarkup = function() { return {__html: text }; };
+
+      return <div className='body-text' dangerouslySetInnerHTML={createMarkup()} />;
     }
   },
   render: function() {
@@ -124,9 +127,9 @@ var Card = React.createClass({
     var card = Cards.findOne(id);
     // console.log(this.props);
     // console.log(card);
-    if (card.compone)
 
     var props = this.props;
+    console.log(props);
     var label = card.time || card.address ? <span className='card-label'>Event</span> : null;
     var components = card.components ? card.components.map(this.renderCardComponent) : null;
     var headline = card.headline ? <span className="headline">{card.headline}</span> : null;
@@ -184,7 +187,7 @@ var NewCard = React.createClass({
   },
   renderCardComponent: function(card, index) {
     if (card.type === 'text') {
-      return <textarea onChange={this.updateCardComponent.bind(this, index, 'text')} value={card.text} />;
+      return <textarea className="body-text" onChange={this.updateCardComponent.bind(this, index, 'text')} value={card.text} />;
     }
   },
   toggleShow: function() {
@@ -197,15 +200,17 @@ var NewCard = React.createClass({
 
     return  <div className="card new-card">
               <form onSubmit={this.generateCard} >
-                <input className="headline" type="text" placeholder='Headline' value={headline} onChange={setField.bind(this, 'headline')} />
-                { this.state.components.map(this.renderCardComponent) }
-                <div className="event-options-button" onClick={this.toggleShow}>+ Event Options</div>
-                <div className={className}>
-                  <input type="text" value={address} placeholder="Add a place?" onChange={setField.bind(this, 'address')} />
-                  <EventCardForm end={false} update={setField.bind(this, 'startTime')}/>
+                <div className='new-card-top'>
+                  <input className="headline" type="text" placeholder='Headline' value={headline} onChange={setField.bind(this, 'headline')} />
+                  { this.state.components.map(this.renderCardComponent) }
+                  <TagGenerator update={setField.bind(this, 'tags')} />
+                  <div className="event-options-button" onClick={this.toggleShow}>+ Event Options</div>
+                  <div className={className}>
+                    <span className='form-label'>Where </span><input type="text" value={address} placeholder="Add a place?" onChange={setField.bind(this, 'address')} />
+                    <EventCardForm end={false} update={setField.bind(this, 'startTime')}/>
+                  </div>
                 </div>
-                <TagGenerator update={setField.bind(this, 'tags')} />
-                <div>
+                <div className="buttons">
                   <div onClick={this.cancel}>Cancel</div>
                   <button>Done</button>
                 </div>
@@ -260,7 +265,7 @@ var BodyTextCardForm = React.createClass({
 
   render: function() {
     var text = this.state.text;
-    return  <textarea class="new-card" onChange={setField.bind(this, 'text')} value={text} />
+    return  <textarea className="body-text" onChange={setField.bind(this, 'text')} value={text} />
   }
 });
 
@@ -287,6 +292,7 @@ var EventCardForm = React.createClass({
     var title = this.state.title,
         description = this.state.description;
     return  <div className='event-time'>
+                <span className='form-label'>When </span>
                 <DateSelector initVal={this.state.startDate} update={this.setDate} />
                 <TimeSelector initVal={this.state.startTime} update={this.setTime} />
             </div>;
@@ -358,8 +364,8 @@ var TagGenerator = React.createClass({
       event.preventDefault();
       // console.log('comma!');
 
-      var newTag = this.state.text.split(' ').slice(-1),
-          nextTags = this.state.tags.concat(newTag),
+      var tags = this.state.text.split(' '),
+          nextTags = tags.map(function (tag) { return tag.slice(0,1) === '#' ? tag.slice(1) : tag; }),
           nextText = nextTags.map(function(str) { return '#' + str; }).join(' ') + ' ';
       this.setState({tags: nextTags, text: nextText});
       this.props.update(nextTags);

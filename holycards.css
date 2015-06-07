@@ -1,14 +1,29 @@
 body {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-weight: 200;
-  margin: 50px 0;
+  margin: 65px 0 30px;
   padding: 0;
   -webkit-user-select: none;
   -khtml-user-select: none;
   -moz-user-select: none;
   -o-user-select: none;
   user-select: none;
+
+  background-color: #f6f6f6;
+  color: rgba(0, 0, 0, .87);
+  font-size: 14px;
 }
+
+* {
+  box-sizing: border-box;
+}
+
+input, textarea, button {
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 200;
+}
+
 
 #outer {
   width: 600px;
@@ -17,15 +32,27 @@ body {
 
 .card {
   cursor: pointer;
-  padding: 10px;
+  padding: 16px 16px 20px;
   margin: 10px;
-  border: 1px #ccc solid;
-  box-shadow: none;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, .1);
+  background-color: #fff;
+}
+
+.card-label {
+  display: block;
+  margin-bottom: 13px;
+  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 400;
+  color: #999;
 }
 
 .card .headline {
+  color: #26ABA6;
   display: block;
-  font-size: 1.75em;
+  font-weight: 100;
+  font-size: 24px;
+  margin-bottom: 10px;
 }
 
 .card .score {
@@ -44,6 +71,16 @@ body {
 .new-card {
   margin-top: 30px;
   cursor: pointer;
+  padding: 0 0 30px;
+}
+
+.new-card,
+.card.selected {
+  box-shadow: 0 10px 8px rgba(0, 0, 0, .15);
+}
+
+.new-card-top {
+  padding: 16px 16px 10px;
 }
 
 .new-card input {
@@ -51,8 +88,86 @@ body {
   display: block;
 }
 
-.new-card input:focus {
-  outline: #eee auto 5px;
+.new-card headline {
+  width: 100%;
+}
+
+.new-card input:focus,
+.new-card textarea:focus {
+  outline: none;
+}
+
+.body-text {
+  line-height: 24px;
+}
+
+.tags {
+  display: block;
+  margin-top: 10px;
+  color: #ccc;
+  width: 100%;
+}
+
+.new-card textarea {
+  width: 100%;
+  border: none;
+  font-size: 14px;
+  resize: none;
+  font-weight: 200;
+  height: 150px;
+}
+
+.new-card .tags {
+  margin: 10px 0;
+}
+
+.new-card .buttons {
+  border-top: 1px solid #eee;
+  margin-bottom: 20px;
+  padding: 10px 16px 0;
+}
+
+.new-card .buttons div {
+  display: inline-block;
+  float: left;
+  text-transform: uppercase;
+  font-weight: 400;
+  font-size: 14px;
+  color: rgba(0, 0, 0, .54);
+  margin-top: 10px;
+}
+
+.new-card .buttons button {
+  display: inline-block;
+  float: right;
+  background-color: rgba(0, 0, 0, .2);
+  border-radius: 2px;
+  font-weight: 400;
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  text-transform: uppercase;
+  padding: 10px 24px;
+  cursor: pointer;
+  outline: none;
+}
+
+.event-options {
+  line-height: 25px;
+}
+
+.event-options-button {
+  color: #3F51B5;
+  margin: 10px 0;
+}
+
+.event-options input {
+  display: inline-block;
+}
+
+.form-label {
+  width: 50px;
+  display: inline-block;
 }
 
 .details, .none {
@@ -77,10 +192,23 @@ body {
   display: none;
 }
 
-.user-select {
-  cursor: pointer;
-}
-
 .hide {
   display: none;
 }
+
+.user-select {
+  cursor: pointer;
+  display: inline-block;
+  position: relative;
+  float: right;
+}
+
+.control {
+  background-color: #26C6DA;
+  color: #fff;
+  padding: 16px;
+  position: fixed;
+  top: 0;
+  width: 100%;
+}
+
